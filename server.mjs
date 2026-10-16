@@ -12,7 +12,8 @@ import httpProxy from "http-proxy";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const browserStatePath = path.join(root, ".sideview-browser-state.json");
-const memoryStorePath = path.join(root, ".solid-waddle-memory.json");
+const dataDirectory = process.env.SOLID_WADDLE_DATA_DIR ? path.resolve(process.env.SOLID_WADDLE_DATA_DIR) : root;
+const memoryStorePath = path.join(dataDirectory, ".solid-waddle-memory.json");
 const execFileAsync = promisify(execFile);
 const allowedDomains = ["openai.com", "chatgpt.com", "oaistatic.com", "oaiusercontent.com", "chatgptusercontent.com"];
 const maxResponseBytes = 15 * 1024 * 1024;
@@ -332,6 +333,7 @@ let memoryWriteQueue = Promise.resolve();
 
 async function loadMemories() {
     try {
+        await mkdir(dataDirectory, { recursive: true });
         const parsed = JSON.parse(await readFile(memoryStorePath, "utf8"));
         if (!Array.isArray(parsed)) return [];
         return parsed.filter((item) =>
@@ -349,6 +351,7 @@ async function loadMemories() {
 
 async function persistMemories(nextMemoriesOrUpdater) {
     memoryWriteQueue = memoryWriteQueue.catch(() => {}).then(async () => {
+        await mkdir(dataDirectory, { recursive: true });
         const nextMemories = typeof nextMemoriesOrUpdater === "function"
             ? nextMemoriesOrUpdater(savedMemories)
             : nextMemoriesOrUpdater;
