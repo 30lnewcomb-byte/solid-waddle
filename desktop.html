@@ -35,7 +35,7 @@
   </section>
   <section class="window" id="win-memory" style="left:calc(50% - 210px);top:100px;width:420px;height:430px" hidden>
     <div class="titlebar" data-drag><span class="glyph green" style="width:26px;height:26px;font-size:15px">▤</span><span class="window-title">Memory</span><div class="window-controls"><button class="win-control" data-minimize="memory" aria-label="Minimize">—</button><button class="win-control" data-maximize="memory" aria-label="Maximize">□</button><button class="win-control close" data-close="memory" aria-label="Close">×</button></div></div>
-    <div class="window-body"><div class="content"><h2>Memory</h2><p>Save notes for this solid-waddle browser profile. These are local browser-storage notes, not connected AI memory or account-wide memory.</p><label for="memory-input" style="font-size:12px;color:#c2d0df">New note</label><textarea id="memory-input" class="field" rows="3" maxlength="4000" placeholder="Write a preference, idea, or reminder…"></textarea><button class="primary" id="save-memory">Save note</button><div class="memory-list" id="memory-list"></div></div></div>
+    <div class="window-body"><div class="content"><h2>VM Memory</h2><p>Saved on the server workspace, so notes persist across browser refreshes and desktop sessions. The VM can store memories here; AI retrieval and automatic remembering still need to be connected.</p><label for="memory-category" style="font-size:12px;color:#c2d0df">Memory type</label><select id="memory-category" class="field"><option value="fact">Fact</option><option value="preference">Preference</option><option value="project">Project</option><option value="decision">Decision</option><option value="reminder">Reminder</option></select><label for="memory-input" style="font-size:12px;color:#c2d0df">Memory</label><textarea id="memory-input" class="field" rows="3" maxlength="4000" placeholder="A useful detail the VM should remember…"></textarea><button class="primary" id="save-memory">Save memory</button><input id="memory-search" class="field" type="search" placeholder="Search saved memories…"><div id="memory-status" style="margin-top:10px;color:#9aabbe;font-size:12px" role="status">Loading memory…</div><div class="memory-list" id="memory-list"></div><button class="secondary" id="clear-memory" style="margin-top:12px">Clear all memory</button></div></div>
   </section>
   <section class="window" id="win-settings" style="left:calc(50% - 190px);top:120px;width:380px;height:330px" hidden>
     <div class="titlebar" data-drag><span class="glyph purple" style="width:26px;height:26px;font-size:15px">⚙</span><span class="window-title">Settings</span><div class="window-controls"><button class="win-control" data-minimize="settings" aria-label="Minimize">—</button><button class="win-control" data-maximize="settings" aria-label="Maximize">□</button><button class="win-control close" data-close="settings" aria-label="Close">×</button></div></div>
@@ -72,14 +72,60 @@
   document.querySelector("#start-button").addEventListener("click",()=>startMenu.hidden=!startMenu.hidden);
   document.querySelector("#open-chrome-settings").addEventListener("click",()=>openApp("chrome"));
   document.addEventListener("pointerdown",e=>{if(!e.target.closest("#start-menu")&&!e.target.closest("#start-button")&&!e.target.closest("[data-open]"))startMenu.hidden=true});
-  const storageKey="solid-waddle.desktop.memory.v1";
   const input=document.querySelector("#memory-input"),list=document.querySelector("#memory-list");
-  function readNotes(){try{const value=JSON.parse(localStorage.getItem(storageKey)||"[]");return Array.isArray(value)?value.filter(n=>n&&typeof n.id==="string"&&typeof n.text==="string"):[]}catch{return []}}
-  function renderNotes(){const notes=readNotes();list.replaceChildren();if(!notes.length){const empty=document.createElement("div");empty.className="empty";empty.textContent="No notes saved yet. Add one above.";list.append(empty);return}for(const note of notes){const row=document.createElement("div");row.className="memory-item";const body=document.createElement("span");body.textContent=note.text;const del=document.createElement("button");del.textContent="Delete";del.setAttribute("aria-label","Delete saved note");del.addEventListener("click",()=>{localStorage.setItem(storageKey,JSON.stringify(readNotes().filter(n=>n.id!==note.id)));renderNotes()});row.append(body,del);list.append(row)}}
-  document.querySelector("#save-memory").addEventListener("click",()=>{const text=input.value.trim();if(!text)return;const notes=readNotes();notes.unshift({id:Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8),text,createdAt:new Date().toISOString()});try{localStorage.setItem(storageKey,JSON.stringify(notes));input.value="";renderNotes()}catch{alert("The browser could not save this note. Check available site storage.")}});
+  const categoryInput=document.querySelector("#memory-category"),searchInput=document.querySelector("#memory-search"),status=document.querySelector("#memory-status");
+  let memories=[];
+  async function memoryRequest(url,options={}) {
+    const response=await fetch(url,{...options,headers:{"content-type":"application/json",...(options.headers||{})}});
+    const data=await response.json().catch(()=>({error:"The server returned an unreadable response."}));
+    if(!response.ok)throw new Error(data.error||"Memory request failed.");
+    return data;
+  }
+  async function renderMemories(){
+    try {
+      const data=await memoryRequest("/api/memory",{headers:{}});
+      memories=Array.isArray(data.memories)?data.memories:[];
+      status.textContent=memories.length+" saved memor"+(memories.length===1?"y":"ies")+" · stored by the VM server";
+      list.replaceChildren();
+      const query=searchInput.value.trim().toLowerCase();
+      const filtered=memories.filter(m=>(m.text+" "+m.category).toLowerCase().includes(query));
+      if(!filtered.length){const empty=document.createElement("div");empty.className="empty";empty.textContent=query?"No memories match that search.":"No memories saved yet. Add the first one above.";list.append(empty);return}
+      for(const memory of filtered){
+        const row=document.createElement("div");row.className="memory-item";
+        const body=document.createElement("span");
+        const type=document.createElement("strong");type.textContent=memory.category.charAt(0).toUpperCase()+memory.category.slice(1)+" · ";type.style.color="#91bfff";
+        const textNode=document.createTextNode(memory.text);body.append(type,textNode);
+        const del=document.createElement("button");del.textContent="Delete";del.setAttribute("aria-label","Delete memory");
+        del.addEventListener("click",async()=>{del.disabled=true;try{await memoryRequest("/api/memory/"+encodeURIComponent(memory.id),{method:"DELETE"});await renderMemories()}catch(error){status.textContent=error.message;del.disabled=false}});
+        row.append(body,del);list.append(row);
+      }
+    } catch(error) {
+      status.textContent="Memory unavailable: "+error.message;
+      list.replaceChildren();const empty=document.createElement("div");empty.className="empty";empty.textContent="Could not load VM memory. Check that the server is running.";list.append(empty);
+    }
+  }
+  document.querySelector("#save-memory").addEventListener("click",async()=>{
+    const text=input.value.trim();if(!text)return;
+    const button=document.querySelector("#save-memory");button.disabled=true;
+    try{await memoryRequest("/api/memory",{method:"POST",body:JSON.stringify({text,category:categoryInput.value})});input.value="";await renderMemories()}
+    catch(error){status.textContent="Could not save memory: "+error.message}
+    finally{button.disabled=false}
+  });
+  searchInput.addEventListener("input",()=>{
+    list.replaceChildren();
+    const query=searchInput.value.trim().toLowerCase();
+    const filtered=memories.filter(m=>(m.text+" "+m.category).toLowerCase().includes(query));
+    if(!filtered.length){const empty=document.createElement("div");empty.className="empty";empty.textContent="No matching memories.";list.append(empty);return}
+    for(const memory of filtered){const row=document.createElement("div");row.className="memory-item";const body=document.createElement("span");const type=document.createElement("strong");type.textContent=memory.category.charAt(0).toUpperCase()+memory.category.slice(1)+" · ";type.style.color="#91bfff";body.append(type,document.createTextNode(memory.text));const del=document.createElement("button");del.textContent="Delete";del.addEventListener("click",async()=>{try{await memoryRequest("/api/memory/"+encodeURIComponent(memory.id),{method:"DELETE"});await renderMemories()}catch(error){status.textContent=error.message}});row.append(body,del);list.append(row)}
+  });
+  document.querySelector("#clear-memory").addEventListener("click",async()=>{
+    if(!memories.length)return;
+    if(!confirm("Delete every saved VM memory? This cannot be undone."))return;
+    try{await memoryRequest("/api/memory",{method:"DELETE"});await renderMemories()}catch(error){status.textContent=error.message}
+  });
   document.querySelector("#clock").innerHTML="";
   function updateClock(){const now=new Date();document.querySelector("#clock").replaceChildren(document.createTextNode(now.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"})));const small=document.createElement("small");small.textContent=now.toLocaleDateString([], {month:"short",day:"numeric"});document.querySelector("#clock").append(small)}
-  updateClock();setInterval(updateClock,30000);renderNotes();openApp("chrome");
+  updateClock();setInterval(updateClock,30000);renderMemories();openApp("chrome");
 })();
 </script>
 </body>
