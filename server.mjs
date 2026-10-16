@@ -12,6 +12,7 @@ import httpProxy from "http-proxy";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const browserStatePath = path.join(root, ".sideview-browser-state.json");
+const memoryStorePath = path.join(root, ".solid-waddle-memory.json");
 const execFileAsync = promisify(execFile);
 const allowedDomains = ["openai.com", "chatgpt.com", "oaistatic.com", "oaiusercontent.com", "chatgptusercontent.com"];
 const maxResponseBytes = 15 * 1024 * 1024;
@@ -324,6 +325,129 @@ async function readJsonBody(request) {
     return JSON.parse(body || "{}");
 }
 
+
+const memoryCategories = new Set(["preference", "project", "fact", "decision", "reminder"]);
+let savedMemories = await loadMemories();
+let memoryWriteQueue = Promise.resolve();
+
+async function loadMemories() {
+    try {
+        const parsed = JSON.parse(await readFile(memoryStorePath, "utf8"));
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter((item) =>
+            item && typeof item.id === "string" &&
+            typeof item.text === "string" &&
+            memoryCategories.has(item.category) &&
+            typeof item.createdAt === "string" &&
+            typeof item.updatedAt === "string"
+        ).slice(0, 1000);
+    } catch (error) {
+        if (error.code !== "ENOENT") console.error("Could not load Solid-waddle memory:", error.message);
+        return [];
+    }
+}
+
+async function persistMemories(nextMemories) {
+    const serialized = JSON.stringify(nextMemories, null, 2);
+    memoryWriteQueue = memoryWriteQueue.catch(() => {}).then(async () => {
+        const temporaryPath = memoryStorePath + ".tmp";
+        await writeFile(temporaryPath, serialized, { mode: 0o600 });
+        await rename(temporaryPath, memoryStorePath);
+        savedMemories = nextMemories;
+    });
+    await memoryWriteQueue;
+}
+
+async function serveMemoryApi(request, response, requestUrl) {
+    try {
+        if (!isSameOriginRequest(request)) {
+            sendJson(response, 403, { error: "Cross-origin memory access is not allowed." });
+            return;
+        }
+        if (requestUrl.pathname === "/api/memory" && request.method === "GET") {
+            sendJson(response, 200, { memories: savedMemories });
+            return;
+        }
+        const itemMatch = requestUrl.pathname.match(/^\/api\/memory\/([a-zA-Z0-9_-]{1,80})$/);
+        if (request.method === "POST" && requestUrl.pathname === "/api/memory") {
+            if (!request.headers["content-type"]?.startsWith("application/json")) {
+                sendJson(response, 415, { error: "Memory writes require application/json." });
+                return;
+            }
+            const body = await readJsonBody(request);
+            const text = typeof body.text === "string" ? body.text.trim() : "";
+            const category = memoryCategories.has(body.category) ? body.category : "fact";
+            if (!text) {
+                sendJson(response, 400, { error: "Memory text cannot be empty." });
+                return;
+            }
+            if (text.length > 4000) {
+                sendJson(response, 413, { error: "Memory text must be 4,000 characters or fewer." });
+                return;
+            }
+            if (savedMemories.length >= 1000) {
+                sendJson(response, 409, { error: "Memory is full (1,000 items). Delete an item before adding another." });
+                return;
+            }
+            const now = new Date().toISOString();
+            const memory = {
+                id: "mem_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10),
+                category,
+                text,
+                createdAt: now,
+                updatedAt: now,
+            };
+            await persistMemories([memory, ...savedMemories]);
+            sendJson(response, 201, { memory });
+            return;
+        }
+        if (itemMatch && request.method === "PATCH") {
+            if (!request.headers["content-type"]?.startsWith("application/json")) {
+                sendJson(response, 415, { error: "Memory updates require application/json." });
+                return;
+            }
+            const body = await readJsonBody(request);
+            const old = savedMemories.find((item) => item.id === itemMatch[1]);
+            if (!old) {
+                sendJson(response, 404, { error: "Memory not found." });
+                return;
+            }
+            const text = typeof body.text === "string" ? body.text.trim() : old.text;
+            const category = memoryCategories.has(body.category) ? body.category : old.category;
+            if (!text) {
+                sendJson(response, 400, { error: "Memory text cannot be empty." });
+                return;
+            }
+            if (text.length > 4000) {
+                sendJson(response, 413, { error: "Memory text must be 4,000 characters or fewer." });
+                return;
+            }
+            const memory = { ...old, text, category, updatedAt: new Date().toISOString() };
+            await persistMemories(savedMemories.map((item) => item.id === old.id ? memory : item));
+            sendJson(response, 200, { memory });
+            return;
+        }
+        if (itemMatch && request.method === "DELETE") {
+            const next = savedMemories.filter((item) => item.id !== itemMatch[1]);
+            if (next.length === savedMemories.length) {
+                sendJson(response, 404, { error: "Memory not found." });
+                return;
+            }
+            await persistMemories(next);
+            sendJson(response, 200, { ok: true });
+            return;
+        }
+        if (request.method === "DELETE" && requestUrl.pathname === "/api/memory") {
+            await persistMemories([]);
+            sendJson(response, 200, { ok: true });
+            return;
+        }
+        sendJson(response, 405, { error: "Unsupported memory method or route." });
+    } catch (error) {
+        sendJson(response, 500, { error: "Memory operation failed: " + error.message });
+    }
+}
+
 async function startBrowserContainer() {
     if (!browserStartPromise) {
         browserStartPromise = execFileAsync("docker", ["compose", "up", "-d", "--wait"], {
@@ -584,6 +708,8 @@ const server = createServer(async (request, response) => {
     const requestUrl = new URL(request.url, "http://localhost");
     if (requestUrl.pathname === "/remote" || requestUrl.pathname.startsWith("/remote/")) {
         proxyNoVnc(request, response);
+    } else if (requestUrl.pathname === "/api/memory" || requestUrl.pathname.startsWith("/api/memory/")) {
+        await serveMemoryApi(request, response, requestUrl);
     } else if (requestUrl.pathname.startsWith("/api/browser/")) {
         await serveBrowserApi(request, response, requestUrl);
     } else if (requestUrl.pathname === "/proxy") {
