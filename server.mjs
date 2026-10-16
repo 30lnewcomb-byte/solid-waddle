@@ -367,6 +367,24 @@ async function serveMemoryApi(request, response, requestUrl) {
             sendJson(response, 403, { error: "Cross-origin memory access is not allowed; writes require a same-origin request." });
             return;
         }
+        if (requestUrl.pathname === "/api/memory/search" && request.method === "GET") {
+            const query = (requestUrl.searchParams.get("q") || "").trim().toLowerCase();
+            if (!query) {
+                sendJson(response, 400, { error: "Add a search query with ?q=..." });
+                return;
+            }
+            const terms = [...new Set(query.split(/[^a-z0-9_-]+/i).filter((term) => term.length > 1))].slice(0, 12);
+            const results = savedMemories.map((memory) => {
+                const text = (memory.category + " " + memory.text).toLowerCase();
+                const score = terms.reduce((total, term) => total + (text.includes(term) ? (memory.text.toLowerCase().includes(term) ? 2 : 1) : 0), 0);
+                return { memory, score };
+            }).filter((result) => result.score > 0)
+              .sort((a, b) => b.score - a.score || b.memory.updatedAt.localeCompare(a.memory.updatedAt))
+              .slice(0, 10)
+              .map((result) => ({ ...result.memory, relevance: result.score }));
+            sendJson(response, 200, { query, memories: results });
+            return;
+        }
         if (requestUrl.pathname === "/api/memory" && request.method === "GET") {
             sendJson(response, 200, { memories: savedMemories });
             return;
