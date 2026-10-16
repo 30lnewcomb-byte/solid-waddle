@@ -347,9 +347,12 @@ async function loadMemories() {
     }
 }
 
-async function persistMemories(nextMemories) {
-    const serialized = JSON.stringify(nextMemories, null, 2);
+async function persistMemories(nextMemoriesOrUpdater) {
     memoryWriteQueue = memoryWriteQueue.catch(() => {}).then(async () => {
+        const nextMemories = typeof nextMemoriesOrUpdater === "function"
+            ? nextMemoriesOrUpdater(savedMemories)
+            : nextMemoriesOrUpdater;
+        const serialized = JSON.stringify(nextMemories, null, 2);
         const temporaryPath = memoryStorePath + ".tmp";
         await writeFile(temporaryPath, serialized, { mode: 0o600 });
         await rename(temporaryPath, memoryStorePath);
@@ -397,7 +400,7 @@ async function serveMemoryApi(request, response, requestUrl) {
                 createdAt: now,
                 updatedAt: now,
             };
-            await persistMemories([memory, ...savedMemories]);
+            await persistMemories((current) => [memory, ...current]);
             sendJson(response, 201, { memory });
             return;
         }
@@ -423,7 +426,7 @@ async function serveMemoryApi(request, response, requestUrl) {
                 return;
             }
             const memory = { ...old, text, category, updatedAt: new Date().toISOString() };
-            await persistMemories(savedMemories.map((item) => item.id === old.id ? memory : item));
+            await persistMemories((current) => current.map((item) => item.id === old.id ? memory : item));
             sendJson(response, 200, { memory });
             return;
         }
@@ -433,12 +436,12 @@ async function serveMemoryApi(request, response, requestUrl) {
                 sendJson(response, 404, { error: "Memory not found." });
                 return;
             }
-            await persistMemories(next);
+            await persistMemories((current) => current.filter((item) => item.id !== itemMatch[1]));
             sendJson(response, 200, { ok: true });
             return;
         }
         if (request.method === "DELETE" && requestUrl.pathname === "/api/memory") {
-            await persistMemories([]);
+            await persistMemories(() => []);
             sendJson(response, 200, { ok: true });
             return;
         }
