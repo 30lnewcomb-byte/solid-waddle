@@ -164,12 +164,33 @@ footer{position:absolute;bottom:17px;left:0;right:0;display:flex;justify-content
     "What would you like to bring to life?",
     "What should we explore together?"
   ];
-  // Avoid an immediate repeat if this page is refreshed in the same tab.
-  const previousGreeting = sessionStorage.getItem("ori-start-last-greeting");
-  const choices = emptyPrompts.filter(prompt => prompt !== previousGreeting);
+  // Rotate through the pool without repeats across visits on this browser origin.
+  // This history is local to Solid-waddle; Ori Platform cannot read it across domains.
+  const greetingHistoryKey = "ori-start-greeting-history-v1";
+  let greetingHistory = [];
+  try {
+    const savedHistory = JSON.parse(localStorage.getItem(greetingHistoryKey) || "[]");
+    if (Array.isArray(savedHistory)) {
+      greetingHistory = savedHistory.filter(prompt => typeof prompt === "string" && emptyPrompts.includes(prompt));
+    }
+  } catch {
+    // Storage may be unavailable in private or restricted browsing contexts; keep the page usable.
+  }
+  let choices = emptyPrompts.filter(prompt => !greetingHistory.includes(prompt));
+  if (choices.length === 0) {
+    // Every greeting has been used: start a fresh cycle, avoiding the last greeting.
+    const lastGreeting = greetingHistory[greetingHistory.length - 1];
+    choices = emptyPrompts.filter(prompt => prompt !== lastGreeting);
+    greetingHistory = [];
+  }
   const selectedGreeting = choices[Math.floor(Math.random() * choices.length)];
   greeting.textContent = selectedGreeting;
-  sessionStorage.setItem("ori-start-last-greeting", selectedGreeting);
+  greetingHistory.push(selectedGreeting);
+  try {
+    localStorage.setItem(greetingHistoryKey, JSON.stringify(greetingHistory));
+  } catch {
+    // Random greeting selection still works when storage is unavailable.
+  }
   input.addEventListener("input", () => {
     send.disabled = !input.value.trim();
     input.style.height = "auto";
