@@ -729,6 +729,7 @@ function serveProxyView(response, requestUrl) {
 
 const demoHtml = await readFile(path.join(root, "index.html"));
 const desktopHtml = await readFile(path.join(root, "desktop.html"));
+const oriStartHtml = await readFile(path.join(root, "ori-start.html"));
 const server = createServer(async (request, response) => {
     const requestUrl = new URL(request.url, "http://localhost");
     if (requestUrl.pathname === "/remote" || requestUrl.pathname.startsWith("/remote/")) {
@@ -750,6 +751,9 @@ const server = createServer(async (request, response) => {
     } else if (requestUrl.pathname === "/") {
         response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
         response.end(demoHtml);
+    } else if (requestUrl.pathname === "/ori-start" || requestUrl.pathname === "/ori-start.html") {
+        response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+        response.end(oriStartHtml);
     } else if (requestUrl.pathname === "/desktop") {
         response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
         response.end(desktopHtml);
