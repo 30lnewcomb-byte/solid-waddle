@@ -749,9 +749,9 @@ const server = createServer(async (request, response) => {
     } else if (requestUrl.pathname === "/demo/upstream-denied") {
         sendUpstreamDenied(response);
     } else if (requestUrl.pathname === "/") {
-        // Codespaces port 8000 opens the Ori startup page by default.
+        // Open the Solid-waddle desktop; Ori is launched on demand from its app button.
         response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
-        response.end(oriStartHtml);
+        response.end(desktopHtml);
     } else if (requestUrl.pathname === "/ori-start" || requestUrl.pathname === "/ori-start.html") {
         response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
         response.end(oriStartHtml);
