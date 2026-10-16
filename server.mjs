@@ -579,6 +579,7 @@ function serveProxyView(response, requestUrl) {
 }
 
 const demoHtml = await readFile(path.join(root, "index.html"));
+const desktopHtml = await readFile(path.join(root, "desktop.html"));
 const server = createServer(async (request, response) => {
     const requestUrl = new URL(request.url, "http://localhost");
     if (requestUrl.pathname === "/remote" || requestUrl.pathname.startsWith("/remote/")) {
@@ -595,7 +596,10 @@ const server = createServer(async (request, response) => {
         sendDemo(response, true);
     } else if (requestUrl.pathname === "/demo/upstream-denied") {
         sendUpstreamDenied(response);
-    } else if (requestUrl.pathname === "/" || requestUrl.pathname === "/index.html") {
+    } else if (requestUrl.pathname === "/" || requestUrl.pathname === "/desktop") {
+        response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+        response.end(desktopHtml);
+    } else if (requestUrl.pathname === "/browser" || requestUrl.pathname === "/index.html") {
         response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
         response.end(demoHtml);
     } else if (requestUrl.pathname === "/favicon.ico") {
