@@ -1,18 +1,25 @@
-# Solid-waddle persistence and shutdown behavior
+# Solid-waddle persistence and safe shutdown
 
-Solid-waddle is currently a Node.js web app with a Docker-managed remote Chrome service. It is **not yet a complete virtual machine with its own virtual disk or operating-system image**. This document describes what currently persists and what the future VM must preserve.
+Solid-waddle's current browser-based version already has persistence mechanisms. Preserve these as the desktop shell evolves; do not replace them with browser-only storage or automatically erase them on shutdown.
 
-## Current persistence
+## Existing persistence that must be preserved
 
-- The browser's Chrome profile is stored in the named Docker volume `chrome-config` declared in `compose.yaml`.
-- Stopping or recreating the browser container does not normally remove that named volume. Do not use `docker compose down --volumes` / `docker compose down -v` unless intentionally deleting browser profile data.
-- VM memory records are written to `.solid-waddle-memory.json` in the data directory.
-- Browser page state is written to `.sideview-browser-state.json`.
-- Both JSON state files are intentionally excluded from Git so private user data is not committed.
+- **Chrome profile:** `compose.yaml` mounts the named Docker volume `chrome-config` at `/home/seluser/.config`. A normal container stop/recreation keeps this volume.
+- **Last browser page:** `server.mjs` saves the last safe browser URL and title in `.sideview-browser-state.json` in the project workspace and attempts to restore the URL when Chrome starts.
+- **VM memory:** the memory API stores records in `.solid-waddle-memory.json` in the configured data directory. By default that is the project workspace; setting `SOLID_WADDLE_DATA_DIR` moves this memory file to a different persistent directory.
+- **Git safety:** browser state and memory files are excluded from Git so personal data is not committed.
 
-## Choosing durable storage
+## Safe shutdown rules
 
-Set `SOLID_WADDLE_DATA_DIR` to a persistent directory before starting the Node server. The memory JSON file will be stored there. Keep this directory outside disposable containers and application installation folders where possible, back it up, and restrict access to the user running Solid-waddle.
+- Normal stop/start must not delete browser profile data, memory records, settings, or VM files.
+- `npm run stop` runs `docker compose down`. Do not change it to `docker compose down -v`.
+- Never use `docker compose down --volumes` / `docker compose down -v` as a routine stop or update operation. These commands remove named volumes and can erase the Chrome profile.
+- Updates should preserve the existing data directory and Docker volume.
+- Do not automatically delete VM data during app close, server shutdown, container recreation, or upgrade.
+
+## Codespaces and future installed VM
+
+Codespaces normally retains a workspace when it is stopped and restarted, but deleting the Codespace can delete workspace files. Git-ignored state files are not backed up in Git. If long-term durability beyond the workspace is required, configure `SOLID_WADDLE_DATA_DIR` to a durable location and back up the Chrome volume as appropriate.
 
 Example for a local Windows PowerShell session:
 
@@ -21,11 +28,6 @@ $env:SOLID_WADDLE_DATA_DIR = "$env:LOCALAPPDATA\SolidWaddle\Data"
 npm start
 ```
 
-That environment setting applies to the current PowerShell session. Set it in the launcher's environment as well when creating a desktop installer.
+That environment setting applies to the current PowerShell session. A desktop launcher should set it too.
 
-## Important limits
-
-- A normal Codespaces stop/start generally retains the workspace, but deleting a Codespace can delete its workspace data. Git-ignored files are not backed up in the repository.
-- Persistent memory storage is not a substitute for backups.
-- The current code does not yet implement a bootable VM or a persistent VM virtual disk. The future VM design must store its disk image and configuration in durable user-controlled storage and must never automatically delete them on normal shutdown.
-- Do not claim persistence is tested until the app is run, stopped, restarted, and its data is checked.
+The current project is a Node.js server with a Docker-managed remote Chrome service; it is not yet a complete bootable VM with a virtual disk. The future VM design must keep its disk image and configuration in durable user-controlled storage, and normal shutdown must behave like powering off a computer—not deleting the computer.
