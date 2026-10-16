@@ -3,24 +3,430 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Embedded Viewer</title>
+    <title>Sideview Browser</title>
     <style>
-        html, body {
-            margin: 0;
-            padding: 0;
+        :root {
+            color-scheme: light;
+            font-family: "Avenir Next", "Segoe UI", sans-serif;
+            color: #1d2c27;
+            background: #e8efeb;
+            --ink: #1d2c27;
+            --muted: #65746d;
+            --line: #d4ded8;
+            --paper: #fbfcfb;
+            --green: #176b52;
+            --green-dark: #10543f;
+        }
+        * { box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; margin: 0; }
+        body { display: grid; grid-template-rows: auto minmax(0, 1fr); }
+        .chrome {
+            position: relative;
+            z-index: 1;
+            padding: 16px 22px 14px;
+            background: var(--paper);
+            border-bottom: 1px solid var(--line);
+            box-shadow: 0 4px 18px rgb(31 54 44 / 6%);
+        }
+        .topline, .controls, .nav-group, .address-row, .mode-group { display: flex; align-items: center; }
+        .topline { justify-content: space-between; margin-bottom: 13px; }
+        .brand { display: flex; align-items: center; gap: 10px; }
+        .brand-mark {
+            display: grid;
+            width: 30px;
+            height: 30px;
+            place-items: center;
+            border-radius: 8px;
+            background: var(--green);
+            color: white;
+            font: 700 16px Georgia, serif;
+        }
+        .brand-name { font: 600 19px Georgia, serif; }
+        .local-tag {
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+        .controls { gap: 10px; }
+        .nav-group { gap: 3px; }
+        .mode-group { gap: 4px; }
+        .mode-group button[aria-pressed="true"] { border-color: var(--green); background: #e8f3ed; color: var(--green-dark); }
+        button, input { font: inherit; }
+        button {
+            min-height: 38px;
+            padding: 0 11px;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            background: #fff;
+            color: var(--ink);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        button:hover:not(:disabled) { border-color: #9bb8aa; background: #f4f8f5; }
+        button:focus-visible, input:focus-visible { outline: 3px solid #8dc4a9; outline-offset: 2px; }
+        button:disabled { color: #a6b0aa; cursor: default; }
+        .address-row { flex: 1; min-width: 0; gap: 7px; }
+        .address {
+            width: 100%;
+            height: 40px;
+            padding: 0 13px;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            background: #f4f7f5;
+            color: var(--ink);
+            font-family: ui-monospace, "Cascadia Code", monospace;
+            font-size: 13px;
+        }
+        .go-button { border-color: var(--green); background: var(--green); color: white; }
+        .go-button:hover:not(:disabled) { border-color: var(--green-dark); background: var(--green-dark); }
+        .mode-group button { font-size: 13px; }
+        main { min-height: 0; padding: 12px; }
+        .viewport {
+            position: relative;
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #000;
+            border: 1px solid #d0dad4;
+            border-radius: 9px;
+            background: var(--paper);
+            box-shadow: 0 12px 30px rgb(31 54 44 / 8%);
         }
-        iframe {
+        iframe { display: block; width: 100%; height: 100%; border: 0; background: white; }
+        iframe[hidden] { display: none; }
+        .welcome {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-content: center;
+            padding: 24px;
+            text-align: center;
+            background:
+                linear-gradient(135deg, transparent 0 49.8%, rgb(23 107 82 / 4%) 50%, transparent 50.2%),
+                #f7faf8;
+            background-size: 38px 38px;
+        }
+        .welcome[hidden] { display: none; }
+        .welcome h1 { margin: 0 0 8px; font: 400 32px Georgia, serif; }
+        .welcome p { max-width: 440px; margin: 0; color: var(--muted); line-height: 1.6; }
+        .demo-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 18px; }
+        .statusbar {
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            max-width: calc(100% - 20px);
+            padding: 6px 9px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: rgb(251 252 251 / 94%);
+            color: var(--muted);
+            font-size: 11px;
+            pointer-events: none;
+        }
+        @media (max-width: 760px) {
+            .chrome { padding: 12px; }
+            .controls { align-items: stretch; flex-wrap: wrap; gap: 7px; }
+            .nav-group { order: 1; }
+            .address-row { order: 2; flex-basis: 100%; }
+            .mode-group { order: 3; margin-left: auto; }
+            .local-tag { font-size: 10px; }
+            main { padding: 8px; }
+            .welcome h1 { font-size: 27px; }
+        }
+        body {
+            display: block;
+            overflow: hidden;
+            background: #111;
+        }
+        .chrome { display: none; }
+        main { height: 100dvh; padding: 0; }
+        .viewport {
+            height: 100%;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        #pageFrame {
+            position: absolute;
+            inset: 0;
             width: 100%;
             height: 100%;
-            border: none;
+            outline: none;
         }
+        #proxyFrame, .welcome, .statusbar { display: none !important; }
+        .launch-panel {
+            position: absolute;
+            z-index: 2;
+            inset: 0;
+            display: grid;
+            align-content: center;
+            justify-items: center;
+            gap: 14px;
+            padding: 24px;
+            background: #111;
+            color: #fff;
+            text-align: center;
+        }
+        .launch-panel[hidden] { display: none; }
+        .launch-panel h1 { margin: 0; font: 400 30px Georgia, serif; }
+        .launch-panel p { max-width: 460px; margin: 0; color: #b9c4be; line-height: 1.55; }
+        .launch-panel::after {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #476157;
+            border-top-color: #8ac7aa;
+            border-radius: 50%;
+            content: "";
+            animation: spin .8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <iframe src="https://openai.com"></iframe>
+    <header class="chrome">
+        <div class="topline">
+            <div class="brand"><span class="brand-mark" aria-hidden="true">S</span><span class="brand-name">Sideview</span></div>
+            <span class="local-tag">Local browser</span>
+        </div>
+        <div class="controls">
+            <div class="nav-group" aria-label="Page history">
+                <button id="backButton" type="button" title="Back" aria-label="Back" disabled>&larr;</button>
+                <button id="forwardButton" type="button" title="Forward" aria-label="Forward" disabled>&rarr;</button>
+                <button id="reloadButton" type="button" title="Reload" aria-label="Reload" disabled>&#8635;</button>
+            </div>
+            <form id="addressForm" class="address-row">
+                <input id="addressInput" class="address" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="Enter a web address" aria-label="Web address">
+                <button class="go-button" type="submit">Go</button>
+            </form>
+            <div class="mode-group" role="group" aria-label="Browser mode">
+                <button id="remoteModeButton" type="button" aria-pressed="true">Remote Chrome</button>
+                <button id="proxyModeButton" type="button" aria-pressed="false">Proxy URL</button>
+            </div>
+        </div>
+    </header>
+    <main>
+        <section class="viewport" aria-label="Browser viewport">
+            <iframe id="pageFrame" title="Chrome via noVNC" allow="clipboard-read; clipboard-write; fullscreen; pointer-lock" referrerpolicy="no-referrer" tabindex="0" hidden></iframe>
+            <iframe id="proxyFrame" title="Isolated proxy page" sandbox="allow-scripts allow-forms allow-popups allow-downloads" referrerpolicy="no-referrer" hidden></iframe>
+            <div id="launchPanel" class="launch-panel" role="status">
+                <h1>Remote Chrome</h1>
+                <p id="launchMessage">Connecting to Chrome…</p>
+            </div>
+            <div id="welcome" class="welcome">
+                <h1>A view into the web.</h1>
+                <p>Remote Chrome starts on a blank page. Navigate here or use Chrome’s address bar in the streamed desktop.</p>
+                <div class="demo-actions">
+                    <button id="blockedDemoButton" type="button">Blocked demo</button>
+                    <button id="proxiedDemoButton" class="go-button" type="button">Proxy demo</button>
+                    <button id="deniedDemoButton" type="button">403 demo</button>
+                </div>
+            </div>
+            <div id="statusbar" class="statusbar">Ready for a web address.</div>
+        </section>
+    </main>
+    <script>
+        const addressForm = document.querySelector("#addressForm");
+        const addressInput = document.querySelector("#addressInput");
+        const pageFrame = document.querySelector("#pageFrame");
+        const proxyFrame = document.querySelector("#proxyFrame");
+        const launchPanel = document.querySelector("#launchPanel");
+        const launchMessage = document.querySelector("#launchMessage");
+        const welcome = document.querySelector("#welcome");
+        const backButton = document.querySelector("#backButton");
+        const forwardButton = document.querySelector("#forwardButton");
+        const reloadButton = document.querySelector("#reloadButton");
+        const remoteModeButton = document.querySelector("#remoteModeButton");
+        const proxyModeButton = document.querySelector("#proxyModeButton");
+        const statusbar = document.querySelector("#statusbar");
+        const blockedDemoButton = document.querySelector("#blockedDemoButton");
+        const proxiedDemoButton = document.querySelector("#proxiedDemoButton");
+        const deniedDemoButton = document.querySelector("#deniedDemoButton");
+        const visitedPages = [];
+        let historyIndex = -1;
+        let browserMode = "remote";
+        let remoteBrowserActive = false;
+        let healthCheckTimer;
+        let reconnectTimer;
+        let reconnectAttempts = 0;
+        let isConnecting = false;
+
+        function parseAddress(value) {
+            const address = value.trim();
+            if (!address) return null;
+            const withProtocol = /^[a-z][a-z\d+.-]*:/i.test(address) ? address : `https://${address}`;
+            const parsed = new URL(withProtocol);
+            if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+                throw new Error("Only web addresses using http or https are supported.");
+            }
+            return parsed.href;
+        }
+
+        function updateControls() {
+            backButton.disabled = historyIndex <= 0;
+            forwardButton.disabled = historyIndex >= visitedPages.length - 1;
+            reloadButton.disabled = historyIndex < 0;
+        }
+
+        function proxyUrl(url) {
+            return `/proxy?url=${encodeURIComponent(url)}`;
+        }
+
+        async function browserAction(action, body) {
+            const response = await fetch(`/api/browser/${action}`, {
+                method: body ? "POST" : "GET",
+                headers: body ? { "content-type": "application/json" } : undefined,
+                body: body ? JSON.stringify(body) : undefined,
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || "Remote browser command failed.");
+            return result;
+        }
+
+        function showBrowserLaunch(message) {
+            remoteBrowserActive = false;
+            if (pageFrame.src && pageFrame.src !== "about:blank") pageFrame.hidden = false;
+            launchMessage.textContent = message;
+            launchPanel.hidden = false;
+            if (healthCheckTimer) clearInterval(healthCheckTimer);
+            if (!reconnectTimer) {
+                const delay = Math.min(30000, 1000 * (2 ** Math.min(reconnectAttempts, 5)));
+                reconnectAttempts += 1;
+                reconnectTimer = setTimeout(() => {
+                    reconnectTimer = null;
+                    connectRemoteBrowser();
+                }, delay);
+            }
+        }
+
+        function monitorRemoteBrowser() {
+            if (healthCheckTimer) clearInterval(healthCheckTimer);
+            healthCheckTimer = setInterval(async () => {
+                try {
+                    const response = await fetch("/api/browser/state", { cache: "no-store" });
+                    if (!response.ok) throw new Error("The browser session expired or disconnected.");
+                } catch {
+                    showBrowserLaunch("Chrome disconnected. Reconnect to start a fresh session.");
+                }
+            }, 15000);
+        }
+
+        async function showPage(url, addToHistory = true) {
+            if (addToHistory) {
+                visitedPages.splice(historyIndex + 1);
+                visitedPages.push(url);
+                historyIndex = visitedPages.length - 1;
+            }
+            addressInput.value = url;
+            welcome.hidden = true;
+            updateControls();
+            try {
+                if (browserMode === "remote") {
+                    statusbar.textContent = "Navigating remote Chrome...";
+                    await browserAction("navigate", { url });
+                } else {
+                    pageFrame.hidden = true;
+                    proxyFrame.hidden = false;
+                    proxyFrame.src = proxyUrl(url);
+                    statusbar.textContent = "Request sent through the local proxy. Upstream access restrictions remain active.";
+                }
+            } catch (error) {
+                statusbar.textContent = error.message;
+            }
+        }
+
+        addressForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            try {
+                const url = parseAddress(addressInput.value);
+                if (!url) return;
+                showPage(url);
+            } catch {
+                addressInput.setCustomValidity("Enter a valid http or https web address.");
+                addressInput.reportValidity();
+                addressInput.addEventListener("input", () => addressInput.setCustomValidity(""), { once: true });
+            }
+        });
+
+        backButton.addEventListener("click", () => {
+            if (browserMode === "remote") browserAction("back").catch((error) => { statusbar.textContent = error.message; });
+            else if (historyIndex > 0) showPage(visitedPages[--historyIndex], false);
+        });
+        forwardButton.addEventListener("click", () => {
+            if (browserMode === "remote") browserAction("forward").catch((error) => { statusbar.textContent = error.message; });
+            else if (historyIndex < visitedPages.length - 1) showPage(visitedPages[++historyIndex], false);
+        });
+        reloadButton.addEventListener("click", () => {
+            if (browserMode === "remote") browserAction("reload").catch((error) => { statusbar.textContent = error.message; });
+            else if (historyIndex >= 0) proxyFrame.src = proxyUrl(visitedPages[historyIndex]);
+        });
+        blockedDemoButton.addEventListener("click", () => {
+            browserMode = "demo";
+            pageFrame.hidden = true;
+            proxyFrame.hidden = false;
+            proxyFrame.src = "/demo/blocked";
+            welcome.hidden = true;
+            statusbar.textContent = "Local fixture: X-Frame-Options: DENY and frame-ancestors: none.";
+        });
+        proxiedDemoButton.addEventListener("click", () => {
+            browserMode = "demo";
+            pageFrame.hidden = true;
+            proxyFrame.hidden = false;
+            proxyFrame.src = "/demo/proxy-preview";
+            welcome.hidden = true;
+            statusbar.textContent = "Local fixture: frame restrictions removed; other headers preserved.";
+        });
+        deniedDemoButton.addEventListener("click", () => {
+            browserMode = "demo";
+            pageFrame.hidden = true;
+            proxyFrame.hidden = false;
+            proxyFrame.src = "/demo/upstream-denied";
+            welcome.hidden = true;
+            statusbar.textContent = "Local fixture: upstream access denial remains after frame headers are removed.";
+        });
+
+        async function connectRemoteBrowser() {
+            if (isConnecting) return;
+            isConnecting = true;
+            browserMode = "remote";
+            remoteModeButton.setAttribute("aria-pressed", "true");
+            proxyModeButton.setAttribute("aria-pressed", "false");
+            launchMessage.textContent = "Connecting to Chrome…";
+            try {
+                await browserAction("start", {});
+                reconnectAttempts = 0;
+                if (reconnectTimer) clearTimeout(reconnectTimer);
+                reconnectTimer = null;
+                remoteBrowserActive = true;
+                pageFrame.hidden = false;
+                proxyFrame.hidden = true;
+                pageFrame.src = "/remote/?autoconnect=1&resize=scale&path=websockify&view_only=0&view_clip=0&show_dot=1";
+                launchPanel.hidden = true;
+                pageFrame.focus();
+                monitorRemoteBrowser();
+            } catch (error) {
+                showBrowserLaunch(error.message);
+            } finally {
+                isConnecting = false;
+            }
+        }
+
+        pageFrame.addEventListener("load", () => {
+            if (remoteBrowserActive) pageFrame.focus();
+        });
+        remoteModeButton.addEventListener("click", connectRemoteBrowser);
+        proxyModeButton.addEventListener("click", () => {
+            browserMode = "proxy";
+            remoteModeButton.setAttribute("aria-pressed", "false");
+            proxyModeButton.setAttribute("aria-pressed", "true");
+            pageFrame.hidden = true;
+            proxyFrame.hidden = false;
+            proxyFrame.src = "about:blank";
+            welcome.hidden = false;
+            statusbar.textContent = "Proxy URL mode. Upstream access restrictions remain active.";
+        });
+
+        connectRemoteBrowser();
+    </script>
 </body>
 </html>

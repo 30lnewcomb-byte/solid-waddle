@@ -1,0 +1,30 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Sideview browser server",
+      "type": "npm",
+      "script": "start",
+      "isBackground": true,
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "problemMatcher": {
+        "owner": "sideview",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^> node server\\.mjs$",
+          "endsPattern": "^Sideview proxy listening on "
+        }
+      },
+      "presentation": {
+        "reveal": "never",
+        "panel": "dedicated",
+        "close": false
+      }
+    }
+  ]
+}
