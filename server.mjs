@@ -360,8 +360,8 @@ async function persistMemories(nextMemories) {
 
 async function serveMemoryApi(request, response, requestUrl) {
     try {
-        if (!isSameOriginRequest(request)) {
-            sendJson(response, 403, { error: "Cross-origin memory access is not allowed." });
+        if (!isSameOriginRequest(request, request.method !== "GET")) {
+            sendJson(response, 403, { error: "Cross-origin memory access is not allowed; writes require a same-origin request." });
             return;
         }
         if (requestUrl.pathname === "/api/memory" && request.method === "GET") {
