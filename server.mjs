@@ -747,7 +747,10 @@ const server = createServer(async (request, response) => {
         sendDemo(response, true);
     } else if (requestUrl.pathname === "/demo/upstream-denied") {
         sendUpstreamDenied(response);
-    } else if (requestUrl.pathname === "/" || requestUrl.pathname === "/desktop") {
+    } else if (requestUrl.pathname === "/") {
+        response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+        response.end(demoHtml);
+    } else if (requestUrl.pathname === "/desktop") {
         response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
         response.end(desktopHtml);
     } else if (requestUrl.pathname === "/browser" || requestUrl.pathname === "/index.html") {
