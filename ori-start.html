@@ -56,6 +56,30 @@ footer{position:absolute;bottom:17px;left:0;right:0;display:flex;justify-content
   const input = document.querySelector("#message");
   const send = document.querySelector("#send-button");
   const status = document.querySelector("#status");
+  const greeting = document.querySelector("#greeting-title");
+  const emptyPrompts = [
+    "What’s on your mind today?",
+    "What would you like to work on?",
+    "What can we figure out together?",
+    "What are you thinking about?",
+    "Where should we start?",
+    "What would you like to explore?",
+    "What are you working on today?",
+    "Got something on your mind?",
+    "What should we tackle?",
+    "What can Ori help with?",
+    "Ready when you are.",
+    "What are we working on?",
+    "What would you like to figure out?",
+    "Need a hand with something?",
+    "What should we dive into?",
+    "What’s up?",
+    "What would you like to talk about?",
+    "Have something in mind?",
+    "What should we look at?",
+    "What do you want to build today?"
+  ];
+  greeting.textContent = emptyPrompts[Math.floor(Math.random() * emptyPrompts.length)];
   input.addEventListener("input", () => {
     send.disabled = !input.value.trim();
     input.style.height = "auto";
