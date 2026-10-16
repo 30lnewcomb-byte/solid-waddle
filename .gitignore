@@ -1,3 +1,5 @@
 node_modules/
 .sideview-browser-state.json
 .sideview-browser-state.json.tmp
+.solid-waddle-memory.json
+.solid-waddle-memory.json.tmp
