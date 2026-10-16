@@ -147,7 +147,7 @@ async function loadSavedBrowserPage() {
         const saved = JSON.parse(await readFile(browserStatePath, "utf8"));
         return { url: parseBrowserTarget(saved.url), title: typeof saved.title === "string" ? saved.title : "" };
     } catch {
-        return null;
+        return { url: "https://ori-startup.vercel.app/", title: "Ori Start" };
     }
 }
 
