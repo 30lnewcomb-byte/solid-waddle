@@ -521,8 +521,8 @@ async function serveBrowserApi(request, response, requestUrl) {
             await startBrowserContainer();
             await ensureWebdriverSession();
             const currentUrl = await webdriverRequest("GET", "url");
-            if (savedBrowserPage && isBlankBrowserPage(currentUrl)) {
-                await webdriverRequest("POST", "url", { url: savedBrowserPage.url });
+            if (isBlankBrowserPage(currentUrl)) {
+                await webdriverRequest("POST", "url", { url: "https://ori-startup.vercel.app/" });
             }
         } else if (requestUrl.pathname === "/api/browser/navigate") {
             const body = await readJsonBody(request);
