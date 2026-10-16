@@ -25,10 +25,15 @@
   <div class="brand">solid-waddle <small>Desktop environment · early build</small></div>
   <div class="status">Desktop session</div>
   <div class="icons">
+    <button class="desktop-icon" data-open="ori"><span class="glyph">o</span><span>Ori</span></button>
     <button class="desktop-icon" data-open="chrome"><span class="glyph">◉</span><span>Chrome</span></button>
     <button class="desktop-icon" data-open="memory"><span class="glyph green">▤</span><span>Memory</span></button>
     <button class="desktop-icon" data-open="settings"><span class="glyph purple">⚙</span><span>Settings</span></button>
   </div>
+  <section class="window" id="win-ori" style="left:calc(50% - 390px);top:54px;width:min(780px,calc(100% - 180px));height:min(690px,calc(100% - 140px))" hidden>
+    <div class="titlebar" data-drag><span class="glyph" style="width:26px;height:26px;font-size:15px;color:#91bfff">o</span><span class="window-title">Ori · Solid-waddle</span><div class="window-controls"><button class="win-control" data-minimize="ori" aria-label="Minimize">—</button><button class="win-control" data-maximize="ori" aria-label="Maximize">□</button><button class="win-control close" data-close="ori" aria-label="Close">×</button></div></div>
+    <div class="window-body"><iframe class="chrome-frame" title="Ori start page" src="/ori-start"></iframe></div>
+  </section>
   <section class="window" id="win-chrome" style="left:130px;top:64px;width:min(1000px,calc(100% - 160px));height:min(650px,calc(100% - 150px))" hidden>
     <div class="titlebar" data-drag><span class="glyph" style="width:26px;height:26px;font-size:15px">◉</span><span class="window-title">Chrome · Solid-waddle</span><div class="window-controls"><button class="win-control" data-minimize="chrome" aria-label="Minimize">—</button><button class="win-control" data-maximize="chrome" aria-label="Maximize">□</button><button class="win-control close" data-close="chrome" aria-label="Close">×</button></div></div>
     <div class="window-body"><iframe class="chrome-frame" id="chrome-frame" title="Existing remote Chrome browser" src="/index.html"></iframe></div>
@@ -43,12 +48,14 @@
   </section>
   <nav class="taskbar" aria-label="Desktop taskbar">
     <button class="start-button" id="start-button" aria-label="Open app launcher">▦</button>
+    <button class="task-app" data-task="ori" hidden>o <span>Ori</span></button>
     <button class="task-app" data-task="chrome" hidden>◉ <span>Chrome</span></button>
     <button class="task-app" data-task="memory" hidden>▤ <span>Memory</span></button>
     <button class="task-app" data-task="settings" hidden>⚙ <span>Settings</span></button>
     <div class="task-spacer"></div><div class="tray"><span>●</span><div class="clock" id="clock">--:--<small>Starting…</small></div></div>
   </nav>
   <aside class="start-menu" id="start-menu" hidden><p class="menu-heading">YOUR APPS</p>
+    <button class="menu-app" data-open="ori"><span class="glyph">o</span><span><strong>Ori</strong><small>Start a conversation</small></span></button>
     <button class="menu-app" data-open="chrome"><span class="glyph">◉</span><span><strong>Chrome</strong><small>Open the existing remote browser</small></span></button>
     <button class="menu-app" data-open="memory"><span class="glyph green">▤</span><span><strong>Memory</strong><small>Save and manage local notes</small></span></button>
     <button class="menu-app" data-open="settings"><span class="glyph purple">⚙</span><span><strong>Settings</strong><small>Desktop and runtime information</small></span></button>
@@ -125,7 +132,7 @@
   });
   document.querySelector("#clock").innerHTML="";
   function updateClock(){const now=new Date();document.querySelector("#clock").replaceChildren(document.createTextNode(now.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"})));const small=document.createElement("small");small.textContent=now.toLocaleDateString([], {month:"short",day:"numeric"});document.querySelector("#clock").append(small)}
-  updateClock();setInterval(updateClock,30000);renderMemories();openApp("chrome");
+  updateClock();setInterval(updateClock,30000);renderMemories();openApp("ori");
 })();
 </script>
 </body>
