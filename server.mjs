@@ -749,8 +749,9 @@ const server = createServer(async (request, response) => {
     } else if (requestUrl.pathname === "/demo/upstream-denied") {
         sendUpstreamDenied(response);
     } else if (requestUrl.pathname === "/") {
+        // Codespaces port 8000 opens the Ori startup page by default.
         response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
-        response.end(demoHtml);
+        response.end(oriStartHtml);
     } else if (requestUrl.pathname === "/ori-start" || requestUrl.pathname === "/ori-start.html") {
         response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
         response.end(oriStartHtml);
