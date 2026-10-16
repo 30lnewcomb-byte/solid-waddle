@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b111a">
+<title>Ori · Solid-waddle</title>
+<style>
+@font-face{font-family:"Ori Text";src:url("https://ori-platform.vercel.app/fonts/OriText-Regular.woff2") format("woff2");font-display:swap}
+@font-face{font-family:"Ori Display";src:url("https://ori-platform.vercel.app/fonts/OriDisplay-Regular.woff2") format("woff2");font-display:swap}
+@font-face{font-family:"Ori Mono";src:url("https://ori-platform.vercel.app/fonts/OriMono-Regular.woff2") format("woff2");font-display:swap}
+:root{color-scheme:dark;--bg:#0b111a;--panel:#121b27;--line:#2b394b;--text:#edf3fa;--muted:#9aaabd;--blue:#8dbdff;--blue-bg:#182b40;font-family:"Ori Text",Arial,sans-serif;color:var(--text);background:var(--bg)}
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0}body{min-height:100dvh;background:radial-gradient(ellipse at 50% 35%,#142235 0%,var(--bg) 68%);display:flex;flex-direction:column}
+header{height:62px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 26px;border-bottom:1px solid #ffffff0c}
+.brand{display:flex;align-items:center;gap:10px;font-size:14px;letter-spacing:.01em}.brand-mark{display:grid;place-items:center;width:28px;height:28px;border:1px solid #405979;border-radius:9px;color:var(--blue);font:18px "Ori Display",serif}.brand small{color:var(--muted);font-size:11px;margin-left:3px}
+.header-actions{display:flex;align-items:center;gap:8px}.link{color:#b9cce2;text-decoration:none;font-size:12px;padding:8px 10px;border-radius:8px}.link:hover{background:#ffffff0b;color:white}
+main{flex:1;min-height:0;width:min(900px,100%);margin:0 auto;padding:28px 24px 26px;display:flex;flex-direction:column}
+.greeting{margin:auto 0 26px;padding:0 0 0 2px}.eyebrow{font:11px "Ori Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:#8097b2;margin:0 0 17px}
+h1{font:400 clamp(38px,6vw,58px)/1.08 "Ori Display","Ori Text",sans-serif;letter-spacing:-.035em;margin:0 0 14px}
+.subtext{font-size:15px;line-height:1.7;color:#aab8c9;margin:0;max-width:510px}
+.composer-wrap{margin:0 0 auto}.composer{border:1px solid #33465c;background:#101925;border-radius:16px;padding:12px;transition:border-color .15s,box-shadow .15s}.composer:focus-within{border-color:#6489b8;box-shadow:0 0 0 3px #8dbdff12}
+textarea{display:block;width:100%;min-height:78px;max-height:180px;resize:vertical;border:0;outline:0;background:transparent;color:var(--text);font:15px/1.6 "Ori Text",Arial,sans-serif;padding:6px 5px}textarea::placeholder{color:#73849a}
+.composer-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 2px 0}.hint{font-size:11px;color:#8495a9;line-height:1.5}
+button{font:inherit;cursor:pointer;border-radius:9px;padding:9px 13px;border:1px solid #34465c;background:#172435;color:#dce8f6;font-size:12px}button:hover:not(:disabled){background:#20344b;border-color:#56769b}button:focus-visible,a:focus-visible,textarea:focus-visible{outline:2px solid var(--blue);outline-offset:3px}button:disabled,textarea:disabled{cursor:not-allowed;opacity:.58}
+.primary{background:#254b76;border-color:#416b9b;color:#fff}.primary:hover:not(:disabled){background:#2e5b8e}
+.lock-row{display:flex;align-items:center;gap:10px;margin:0 0 12px;color:#aab8c9;font-size:12px}.lock-icon{display:grid;place-items:center;width:28px;height:28px;border:1px solid #34465c;border-radius:9px;background:#121e2c;color:var(--blue);font-size:14px}
+.notice{min-height:18px;margin:10px 3px 0;color:#9eb4ce;font-size:12px;line-height:1.5}.notice.error{color:#ffb7bc}
+footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:24px;color:#6f8299;font:10px "Ori Mono",monospace;letter-spacing:.02em}
+@media(max-width:600px){header{padding:0 16px}main{padding:26px 16px 18px}.brand small{display:none}.greeting{margin-bottom:22px}h1{font-size:42px}.subtext{font-size:14px}footer{font-size:9px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="brand-mark" aria-hidden="true">o</span><span>Ori <small>inside Solid-waddle</small></span></div>
+  <nav class="header-actions" aria-label="Quick links"><a class="link" href="https://ori-platform.vercel.app/chat" target="_blank" rel="noopener noreferrer">Open Ori Platform ↗</a><a class="link" href="/browser" target="_blank" rel="noopener noreferrer">Browser ↗</a></nav>
+</header>
+<main>
+  <section class="greeting" aria-labelledby="greeting-title">
+    <p class="eyebrow">SOLID-WADDLE · START</p>
+    <h1 id="greeting-title">Hi. I'm Ori.</h1>
+    <p class="subtext">A quiet place to start thinking, building, or figuring something out. What’s on your mind?</p>
+  </section>
+  <section class="composer-wrap" aria-label="Chat with Ori">
+    <div class="lock-row"><span class="lock-icon" id="lock-icon" aria-hidden="true">⌑</span><span id="lock-label">Chat is locked until you choose to unlock it.</span><button class="primary" id="unlock-button" type="button">Unlock chat</button></div>
+    <form class="composer" id="chat-form">
+      <textarea id="message" rows="3" maxlength="8000" placeholder="Unlock chat to write a message…" aria-label="Message to Ori" disabled></textarea>
+      <div class="composer-bottom"><span class="hint" id="composer-hint">Enter won't send anything while chat is locked.</span><button class="primary" id="send-button" type="submit" disabled>Send ↗</button></div>
+    </form>
+    <p class="notice" id="status" role="status" aria-live="polite">Your chat input stays locked until you explicitly unlock it.</p>
+  </section>
+  <footer><span>ORI · DISPLAY / TEXT / MONO</span><span>LOCAL START PAGE</span></footer>
+</main>
+<script>
+(() => {
+  const form = document.querySelector("#chat-form");
+  const input = document.querySelector("#message");
+  const unlock = document.querySelector("#unlock-button");
+  const send = document.querySelector("#send-button");
+  const label = document.querySelector("#lock-label");
+  const icon = document.querySelector("#lock-icon");
+  const hint = document.querySelector("#composer-hint");
+  const status = document.querySelector("#status");
+  let unlocked = false;
+  unlock.addEventListener("click", () => {
+    if (unlocked) return;
+    unlocked = true;
+    input.disabled = false;
+    send.disabled = false;
+    unlock.hidden = true;
+    icon.textContent = "✓";
+    label.textContent = "Chat unlocked for this page session.";
+    hint.textContent = "Enter to send · Shift + Enter for a new line";
+    input.placeholder = "Write a message to Ori…";
+    status.textContent = "The input is unlocked. The live Ori chat bridge still needs to be connected to Solid-waddle.";
+    input.focus();
+  });
+  input.addEventListener("keydown", event => {
+    if (!unlocked && event.key === "Enter") {
+      event.preventDefault();
+      status.textContent = "Chat is locked. Choose Unlock chat before typing or sending.";
+      return;
+    }
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      if (unlocked) form.requestSubmit();
+    }
+  });
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    if (!unlocked) {
+      status.textContent = "Chat is locked. Choose Unlock chat first.";
+      return;
+    }
+    const message = input.value.trim();
+    if (!message) return;
+    status.classList.add("error");
+    status.textContent = "This message hasn't been sent: Solid-waddle's server-side Ori chat connection isn't configured yet. Use “Open Ori Platform” to chat with Ori for now.";
+    input.focus();
+  });
+})();
+</script>
+</body>
+</html>
