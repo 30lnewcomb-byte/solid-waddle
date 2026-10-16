@@ -63,7 +63,7 @@
 </div>
 <script>
 (() => {
-  const windows = Object.fromEntries(["chrome","memory","settings"].map(name=>[name,document.querySelector("#win-"+name)]));
+  const windows = Object.fromEntries(["ori","chrome","memory","settings"].map(name=>[name,document.querySelector("#win-"+name)]));
   const startMenu=document.querySelector("#start-menu");
   let topZ=20;
   function focusWindow(name){if(!windows[name])return;topZ+=1;windows[name].style.zIndex=topZ;document.querySelectorAll("[data-task]").forEach(b=>b.classList.toggle("active",b.dataset.task===name&&!windows[name].hidden))}
