@@ -21,8 +21,7 @@ h1{font:400 clamp(38px,6vw,58px)/1.08 "Ori Display","Ori Text",sans-serif;letter
 .composer-wrap{margin:0 0 auto}.composer{border:1px solid #33465c;background:#101925;border-radius:16px;padding:12px;transition:border-color .15s,box-shadow .15s}.composer:focus-within{border-color:#6489b8;box-shadow:0 0 0 3px #8dbdff12}
 textarea{display:block;width:100%;min-height:78px;max-height:180px;resize:vertical;border:0;outline:0;background:transparent;color:var(--text);font:15px/1.6 "Ori Text",Arial,sans-serif;padding:6px 5px}textarea::placeholder{color:#73849a}
 .composer-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 2px 0}.hint{font-size:11px;color:#8495a9;line-height:1.5}
-button{font:inherit;cursor:pointer;border-radius:9px;padding:9px 13px;border:1px solid #34465c;background:#172435;color:#dce8f6;font-size:12px}button:hover:not(:disabled){background:#20344b;border-color:#56769b}button:focus-visible,a:focus-visible,textarea:focus-visible{outline:2px solid var(--blue);outline-offset:3px}button:disabled,textarea:disabled{cursor:not-allowed;opacity:.58}
-.primary{background:#254b76;border-color:#416b9b;color:#fff}.primary:hover:not(:disabled){background:#2e5b8e}
+button{font:inherit;cursor:pointer;border-radius:9px;padding:9px 13px;border:1px solid #34465c;background:#172435;color:#dce8f6;font-size:12px}button:hover:not(:disabled){background:#20344b;border-color:#56769b}button:focus-visible,a:focus-visible,textarea:focus-visible{outline:2px solid var(--blue);outline-offset:3px}.primary{background:#254b76;border-color:#416b9b;color:#fff}.primary:hover:not(:disabled){background:#2e5b8e}
 .lock-row{display:flex;align-items:center;gap:10px;margin:0 0 12px;color:#aab8c9;font-size:12px}.lock-icon{display:grid;place-items:center;width:28px;height:28px;border:1px solid #34465c;border-radius:9px;background:#121e2c;color:var(--blue);font-size:14px}
 .notice{min-height:18px;margin:10px 3px 0;color:#9eb4ce;font-size:12px;line-height:1.5}.notice.error{color:#ffb7bc}
 footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:24px;color:#6f8299;font:10px "Ori Mono",monospace;letter-spacing:.02em}
@@ -42,12 +41,11 @@ footer{display:flex;align-items:center;justify-content:space-between;gap:12px;pa
     <p class="subtext">A quiet place to start thinking, building, or figuring something out. What’s on your mind?</p>
   </section>
   <section class="composer-wrap" aria-label="Chat with Ori">
-    <div class="lock-row"><span class="lock-icon" id="lock-icon" aria-hidden="true">⌑</span><span id="lock-label">Chat is locked until you choose to unlock it.</span><button class="primary" id="unlock-button" type="button">Unlock chat</button></div>
     <form class="composer" id="chat-form">
-      <textarea id="message" rows="3" maxlength="8000" placeholder="Unlock chat to write a message…" aria-label="Message to Ori" disabled></textarea>
-      <div class="composer-bottom"><span class="hint" id="composer-hint">Enter won't send anything while chat is locked.</span><button class="primary" id="send-button" type="submit" disabled>Send ↗</button></div>
+      <textarea id="message" rows="3" maxlength="8000" placeholder="Write a message to Ori…" aria-label="Message to Ori"></textarea>
+      <div class="composer-bottom"><span class="hint">Enter to submit · Shift + Enter for a new line</span><button class="primary" id="send-button" type="submit">Send ↗</button></div>
     </form>
-    <p class="notice" id="status" role="status" aria-live="polite">Your chat input stays locked until you explicitly unlock it.</p>
+    <p class="notice" id="status" role="status" aria-live="polite">Ready when you are. The live Ori chat connection still needs to be connected.</p>
   </section>
   <footer><span>ORI · DISPLAY / TEXT / MONO</span><span>LOCAL START PAGE</span></footer>
 </main>
@@ -55,43 +53,15 @@ footer{display:flex;align-items:center;justify-content:space-between;gap:12px;pa
 (() => {
   const form = document.querySelector("#chat-form");
   const input = document.querySelector("#message");
-  const unlock = document.querySelector("#unlock-button");
-  const send = document.querySelector("#send-button");
-  const label = document.querySelector("#lock-label");
-  const icon = document.querySelector("#lock-icon");
-  const hint = document.querySelector("#composer-hint");
   const status = document.querySelector("#status");
-  let unlocked = false;
-  unlock.addEventListener("click", () => {
-    if (unlocked) return;
-    unlocked = true;
-    input.disabled = false;
-    send.disabled = false;
-    unlock.hidden = true;
-    icon.textContent = "✓";
-    label.textContent = "Chat unlocked for this page session.";
-    hint.textContent = "Enter to send · Shift + Enter for a new line";
-    input.placeholder = "Write a message to Ori…";
-    status.textContent = "The input is unlocked. The live Ori chat bridge still needs to be connected to Solid-waddle.";
-    input.focus();
-  });
   input.addEventListener("keydown", event => {
-    if (!unlocked && event.key === "Enter") {
-      event.preventDefault();
-      status.textContent = "Chat is locked. Choose Unlock chat before typing or sending.";
-      return;
-    }
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      if (unlocked) form.requestSubmit();
+      form.requestSubmit();
     }
   });
   form.addEventListener("submit", event => {
     event.preventDefault();
-    if (!unlocked) {
-      status.textContent = "Chat is locked. Choose Unlock chat first.";
-      return;
-    }
     const message = input.value.trim();
     if (!message) return;
     status.classList.add("error");
