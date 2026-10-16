@@ -11,8 +11,8 @@ import { promisify } from "node:util";
 import httpProxy from "http-proxy";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const browserStatePath = path.join(root, ".sideview-browser-state.json");
 const dataDirectory = process.env.SOLID_WADDLE_DATA_DIR ? path.resolve(process.env.SOLID_WADDLE_DATA_DIR) : root;
+const browserStatePath = path.join(dataDirectory, ".sideview-browser-state.json");
 const memoryStorePath = path.join(dataDirectory, ".solid-waddle-memory.json");
 const execFileAsync = promisify(execFile);
 const allowedDomains = ["openai.com", "chatgpt.com", "oaistatic.com", "oaiusercontent.com", "chatgptusercontent.com"];
@@ -166,6 +166,7 @@ async function rememberBrowserPage(url, title) {
     savedBrowserPage = { url: safeUrl, title: safeTitle, savedAt: new Date().toISOString() };
     const serialized = JSON.stringify(savedBrowserPage, null, 2);
     browserStateWrite = browserStateWrite.catch(() => {}).then(async () => {
+        await mkdir(dataDirectory, { recursive: true });
         const temporaryPath = `${browserStatePath}.tmp`;
         await writeFile(temporaryPath, serialized, { mode: 0o600 });
         await rename(temporaryPath, browserStatePath);
