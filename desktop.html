@@ -132,7 +132,7 @@
   });
   document.querySelector("#clock").innerHTML="";
   function updateClock(){const now=new Date();document.querySelector("#clock").replaceChildren(document.createTextNode(now.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"})));const small=document.createElement("small");small.textContent=now.toLocaleDateString([], {month:"short",day:"numeric"});document.querySelector("#clock").append(small)}
-  updateClock();setInterval(updateClock,30000);renderMemories();
+  updateClock();setInterval(updateClock,30000);renderMemories();openApp("ori");
 })();
 </script>
 </body>
