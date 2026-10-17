@@ -29,7 +29,6 @@
     <button class="desktop-icon" data-open="chrome"><span class="glyph">◉</span><span>Chrome</span></button>
     <button class="desktop-icon" data-open="memory"><span class="glyph green">▤</span><span>Memory</span></button>
     <button class="desktop-icon" data-open="settings"><span class="glyph purple">⚙</span><span>Settings</span></button>
-    <button class="desktop-icon" data-open="protective"><span class="glyph green">⬡</span><span>Protective VM</span></button>
   </div>
   <section class="window" id="win-ori" style="left:calc(50% - 390px);top:54px;width:min(780px,calc(100% - 180px));height:min(690px,calc(100% - 140px))" hidden>
     <div class="titlebar" data-drag><span class="glyph" style="width:26px;height:26px;font-size:15px;color:#91bfff">o</span><span class="window-title">Ori · Solid-waddle</span><div class="window-controls"><button class="win-control" data-minimize="ori" aria-label="Minimize">—</button><button class="win-control" data-maximize="ori" aria-label="Maximize">□</button><button class="win-control close" data-close="ori" aria-label="Close">×</button></div></div>
@@ -47,46 +46,12 @@
     <div class="titlebar" data-drag><span class="glyph purple" style="width:26px;height:26px;font-size:15px">⚙</span><span class="window-title">Settings</span><div class="window-controls"><button class="win-control" data-minimize="settings" aria-label="Minimize">—</button><button class="win-control" data-maximize="settings" aria-label="Maximize">□</button><button class="win-control close" data-close="settings" aria-label="Close">×</button></div></div>
     <div class="window-body"><div class="content"><h2>Settings</h2><p><strong>Solid-waddle Desktop</strong></p><p>Current mode: web desktop running from the existing Node.js server.</p><p>Browser engine: your existing remote Chrome service. The desktop shell does not replace its security controls.</p><p>Development address: port 8000 in Codespaces.</p><button class="secondary" id="open-chrome-settings">Open Chrome</button></div></div>
   </section>
-  <section class="window" id="win-protective" style="left:calc(50% - 430px);top:42px;width:min(860px,calc(100% - 140px));height:min(760px,calc(100% - 120px))" hidden>
-    <div class="titlebar" data-drag><span class="glyph green" style="width:26px;height:26px;font-size:15px">⬡</span><span class="window-title">The Protective V.M. 2.0 · Test Bench</span><div class="window-controls"><button class="win-control" data-minimize="protective" aria-label="Minimize">—</button><button class="win-control" data-maximize="protective" aria-label="Maximize">□</button><button class="win-control close" data-close="protective" aria-label="Close">×</button></div></div>
-    <div class="window-body"><div class="content">
-      <h2>The Protective V.M. 2.0 Test Bench</h2>
-      <p>Use Solid-waddle to preview the Protective V.M. dashboard and run its code checks in Codespaces. This is a test workspace, not a virtual machine itself.</p>
-      <div style="padding:12px;border:1px solid #314155;border-radius:12px;background:#141e2b;margin:14px 0">
-        <strong style="font-size:13px">1 · Start the Protective V.M. dashboard preview</strong>
-        <p style="margin:7px 0">In another Codespaces terminal, clone the private repo and start its Next.js dashboard on port 3210:</p>
-        <pre style="white-space:pre-wrap;overflow-wrap:anywhere;background:#0b111a;padding:10px;border-radius:8px;color:#d8e7f7;font-size:11px;line-height:1.55">gh repo clone 30lnewcomb-byte/The-Protective-V.M-2.0 "$HOME/The-Protective-V.M-2.0"
-cd "$HOME/The-Protective-V.M-2.0"
-npm ci
-npm run dev -- --hostname 0.0.0.0 -p 3210</pre>
-        <p style="margin:7px 0">In the Codespaces <strong>Ports</strong> tab, make port <strong>3210</strong> visible to you, copy its forwarded HTTPS address, and paste it below.</p>
-        <label for="protective-preview-url" style="font-size:12px;color:#c2d0df">Forwarded preview URL</label>
-        <input id="protective-preview-url" class="field" type="url" placeholder="https://your-codespace-3210.app.github.dev">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="primary" id="load-protective-preview">Load dashboard preview</button><button class="secondary" id="open-protective-preview">Open preview in new tab</button><a href="https://github.com/30lnewcomb-byte/The-Protective-V.M-2.0" target="_blank" rel="noopener noreferrer" style="align-self:center;color:#91bfff;font-size:12px">Open private GitHub repo ↗</a></div>
-        <p id="protective-preview-status" role="status" style="margin:8px 0 0">Preview not connected. Start the dashboard first.</p>
-      </div>
-      <div style="padding:12px;border:1px solid #314155;border-radius:12px;background:#141e2b;margin:14px 0">
-        <strong style="font-size:13px">2 · Run the automated code checks</strong>
-        <p style="margin:7px 0">In the Protective V.M. repository terminal, run these one at a time:</p>
-        <pre style="white-space:pre-wrap;overflow-wrap:anywhere;background:#0b111a;padding:10px;border-radius:8px;color:#d8e7f7;font-size:11px;line-height:1.55">npm test
-npm run lint
-npm run build</pre>
-        <p style="margin:7px 0">These check code and build output; passing them does not prove that a guest OS boots or is safely isolated.</p>
-      </div>
-      <div style="padding:12px;border:1px solid #6c5830;border-radius:12px;background:#241f15;margin:14px 0">
-        <strong style="font-size:13px;color:#f2d49a">3 · What Codespaces cannot test</strong>
-        <p style="margin:7px 0;color:#e2d5bd">Codespaces can preview the dashboard and run code checks, but it cannot safely operate your laptop's Windows Hypervisor/QEMU/VirtualBox as though it were running locally. Real VM creation, boot, console, checkpoint, and isolation tests must be done on the Windows computer with the desktop app. Never disable Sophos or lower Windows security to make a test pass.</p>
-      </div>
-      <div style="height:320px;border:1px solid #314155;border-radius:10px;overflow:hidden;background:#090e14"><iframe id="protective-preview-frame" title="Protective V.M. dashboard preview" style="display:block;width:100%;height:100%;border:0;background:#090e14" src="about:blank"></iframe></div>
-    </div></div>
-  </section>
   <nav class="taskbar" aria-label="Desktop taskbar">
     <button class="start-button" id="start-button" aria-label="Open app launcher">▦</button>
     <button class="task-app" data-task="ori" hidden>o <span>Ori</span></button>
     <button class="task-app" data-task="chrome" hidden>◉ <span>Chrome</span></button>
     <button class="task-app" data-task="memory" hidden>▤ <span>Memory</span></button>
     <button class="task-app" data-task="settings" hidden>⚙ <span>Settings</span></button>
-    <button class="task-app" data-task="protective" hidden>⬡ <span>Protective VM</span></button>
     <div class="task-spacer"></div><div class="tray"><span>●</span><div class="clock" id="clock">--:--<small>Starting…</small></div></div>
   </nav>
   <aside class="start-menu" id="start-menu" hidden><p class="menu-heading">YOUR APPS</p>
@@ -94,12 +59,11 @@ npm run build</pre>
     <button class="menu-app" data-open="chrome"><span class="glyph">◉</span><span><strong>Chrome</strong><small>Open the existing remote browser</small></span></button>
     <button class="menu-app" data-open="memory"><span class="glyph green">▤</span><span><strong>Memory</strong><small>Save and manage local notes</small></span></button>
     <button class="menu-app" data-open="settings"><span class="glyph purple">⚙</span><span><strong>Settings</strong><small>Desktop and runtime information</small></span></button>
-    <button class="menu-app" data-open="protective"><span class="glyph green">⬡</span><span><strong>Protective V.M. Test Bench</strong><small>Preview dashboard and test code</small></span></button>
   </aside>
 </div>
 <script>
 (() => {
-  const windows = Object.fromEntries(["ori","chrome","memory","settings","protective"].map(name=>[name,document.querySelector("#win-"+name)]));
+  const windows = Object.fromEntries(["ori","chrome","memory","settings"].map(name=>[name,document.querySelector("#win-"+name)]));
   const startMenu=document.querySelector("#start-menu");
   let topZ=20;
   function focusWindow(name){if(!windows[name])return;topZ+=1;windows[name].style.zIndex=topZ;document.querySelectorAll("[data-task]").forEach(b=>b.classList.toggle("active",b.dataset.task===name&&!windows[name].hidden))}
@@ -114,27 +78,7 @@ npm run build</pre>
   document.querySelectorAll("[data-drag]").forEach(bar=>{bar.addEventListener("pointerdown",e=>{if(e.target.closest("button")||bar.parentElement.classList.contains("maximized"))return;const win=bar.parentElement;const rect=win.getBoundingClientRect();const startX=e.clientX,startY=e.clientY;const move=ev=>{win.style.left=Math.max(0,Math.min(innerWidth-120,rect.left+ev.clientX-startX))+"px";win.style.top=Math.max(0,Math.min(innerHeight-100,rect.top+ev.clientY-startY))+"px"};const up=()=>{window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",up)};window.addEventListener("pointermove",move);window.addEventListener("pointerup",up);bar.setPointerCapture?.(e.pointerId)})});
   document.querySelector("#start-button").addEventListener("click",()=>startMenu.hidden=!startMenu.hidden);
   document.querySelector("#open-chrome-settings").addEventListener("click",()=>openApp("chrome"));
-  const protectiveUrlInput=document.querySelector("#protective-preview-url");
-  const protectiveFrame=document.querySelector("#protective-preview-frame");
-  const protectiveStatus=document.querySelector("#protective-preview-status");
-  function getProtectivePreviewUrl(){
-    let parsed;
-    try{parsed=new URL(protectiveUrlInput.value.trim())}catch{throw new Error("Paste the forwarded HTTPS URL for Codespaces port 3210.")}
-    const allowedRemote=parsed.protocol==="https:"&&parsed.hostname.endsWith(".app.github.dev");
-    const allowedLocal=parsed.protocol==="http:"&&["localhost","127.0.0.1"].includes(parsed.hostname);
-    if(!allowedRemote&&!allowedLocal)throw new Error("For safety, use a Codespaces *.app.github.dev HTTPS address, or localhost for local development.");
-    return parsed.href;
-  }
-  function loadProtectivePreview(openInTab=false){
-    try{
-      const url=getProtectivePreviewUrl();
-      protectiveFrame.src=url;
-      protectiveStatus.textContent="Opening dashboard preview. If the embedded view is blocked, use “Open preview in new tab”. The desktop-only VM controls will not be connected in this browser preview.";
-      if(openInTab)window.open(url,"_blank","noopener,noreferrer");
-    }catch(error){protectiveStatus.textContent=error.message}
-  }
-  document.querySelector("#load-protective-preview").addEventListener("click",()=>loadProtectivePreview(false));
-  document.querySelector("#open-protective-preview").addEventListener("click",()=>loadProtectivePreview(true));
+
   document.addEventListener("pointerdown",e=>{if(!e.target.closest("#start-menu")&&!e.target.closest("#start-button")&&!e.target.closest("[data-open]"))startMenu.hidden=true});
   const input=document.querySelector("#memory-input"),list=document.querySelector("#memory-list");
   const categoryInput=document.querySelector("#memory-category"),searchInput=document.querySelector("#memory-search"),status=document.querySelector("#memory-status");
