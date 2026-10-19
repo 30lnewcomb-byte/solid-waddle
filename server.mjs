@@ -203,48 +203,59 @@ async function persistBrowserTabs(tabs, activeUrl) {
 async function saveOpenBrowserTabs(sessionId = webdriverSessionId) {
     if (!sessionId) return;
     try {
-        const handlesResponse = await fetch(`${webdriverEndpoint}/session/${sessionId}/window/handles`, { signal: AbortSignal.timeout(5000) });
-        const handlesData = await handlesResponse.json();
+        const [handlesResponse, currentResponse] = await Promise.all([
+            fetch(`${webdriverEndpoint}/session/${sessionId}/window/handles`, { signal: AbortSignal.timeout(5000) }),
+            fetch(`${webdriverEndpoint}/session/${sessionId}/window`, { signal: AbortSignal.timeout(5000) }),
+        ]);
+        const [handlesData, currentData] = await Promise.all([handlesResponse.json(), currentResponse.json()]);
         const handles = handlesData.value;
-        if (!handlesResponse.ok || !Array.isArray(handles) || !handles.length) return;
-        const currentResponse = await fetch(`${webdriverEndpoint}/session/${sessionId}/window`, { signal: AbortSignal.timeout(5000) });
-        const currentData = await currentResponse.json();
         const activeHandle = currentData.value;
-        const tabs = [];
-        let activeUrl = "";
-        for (const handle of handles.slice(0, 50)) {
-            const switched = await fetch(`${webdriverEndpoint}/session/${sessionId}/window`, {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ handle }),
-                signal: AbortSignal.timeout(5000),
-            });
-            if (!switched.ok) continue;
-            const [urlResponse, titleResponse] = await Promise.all([
-                fetch(`${webdriverEndpoint}/session/${sessionId}/url`, { signal: AbortSignal.timeout(5000) }),
-                fetch(`${webdriverEndpoint}/session/${sessionId}/title`, { signal: AbortSignal.timeout(5000) }),
-            ]);
-            const [urlData, titleData] = await Promise.all([urlResponse.json(), titleResponse.json()]);
-            if (!urlResponse.ok || typeof urlData.value !== "string" || isBlankBrowserPage(urlData.value)) continue;
-            try {
-                const url = parseBrowserTarget(urlData.value);
-                tabs.push({ url, title: typeof titleData.value === "string" ? titleData.value.slice(0, 500) : "" });
-                if (handle === activeHandle) activeUrl = url;
-            } catch {
-                // Ignore internal browser pages that cannot be restored as web URLs.
+        if (!handlesResponse.ok || !currentResponse.ok || !Array.isArray(handles) || !handles.length) return;
+
+        // Read all tab URLs through Chrome DevTools Protocol instead of switching
+        // WebDriver windows. Switching tabs for autosave visibly steals focus.
+        const cdpResponse = await fetch(`${webdriverEndpoint}/session/${sessionId}/goog/cdp/execute`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ cmd: "Target.getTargets", params: {} }),
+            signal: AbortSignal.timeout(5000),
+        });
+        const cdpData = await cdpResponse.json();
+        const targetInfos = cdpData.value?.targetInfos;
+        if (cdpResponse.ok && Array.isArray(targetInfos)) {
+            const pageTargets = targetInfos.filter((target) => target?.type === "page" && typeof target.url === "string");
+            const tabs = [];
+            let activeUrl = "";
+            for (const target of pageTargets) {
+                try {
+                    const url = parseBrowserTarget(target.url);
+                    const tab = { url, title: typeof target.title === "string" ? target.title.slice(0, 500) : "" };
+                    if (!tabs.some((existing) => existing.url === tab.url)) tabs.push(tab);
+                    const targetHandle = `CDwindow-${target.targetId}`;
+                    if (activeHandle === targetHandle || activeHandle === target.targetId) activeUrl = url;
+                } catch {
+                    // Ignore internal browser pages that cannot be restored as web URLs.
+                }
             }
+            // Save an empty list only when CDP successfully enumerated the tabs.
+            await persistBrowserTabs(tabs, activeUrl);
+            if (activeUrl) await rememberBrowserPage(activeUrl, tabs.find((tab) => tab.url === activeUrl)?.title || "");
+            return;
         }
-        if (activeHandle && handles.includes(activeHandle)) {
-            await fetch(`${webdriverEndpoint}/session/${sessionId}/window`, {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ handle: activeHandle }),
-                signal: AbortSignal.timeout(5000),
-            }).catch(() => {});
-        }
-        // Save an empty list too, so closing every tab does not resurrect stale tabs.
-        await persistBrowserTabs(tabs, activeUrl);
-        if (activeUrl) await rememberBrowserPage(activeUrl, tabs.find((tab) => tab.url === activeUrl)?.title || "");
+
+        // Safe fallback for drivers without CDP support: save the current tab
+        // only. Never switch tabs in the fallback, because autosave must not
+        // interrupt the user's active browsing session.
+        const [urlResponse, titleResponse] = await Promise.all([
+            fetch(`${webdriverEndpoint}/session/${sessionId}/url`, { signal: AbortSignal.timeout(5000) }),
+            fetch(`${webdriverEndpoint}/session/${sessionId}/title`, { signal: AbortSignal.timeout(5000) }),
+        ]);
+        const [urlData, titleData] = await Promise.all([urlResponse.json(), titleResponse.json()]);
+        if (!urlResponse.ok || typeof urlData.value !== "string" || isBlankBrowserPage(urlData.value)) return;
+        const url = parseBrowserTarget(urlData.value);
+        const title = typeof titleData.value === "string" ? titleData.value.slice(0, 500) : "";
+        await persistBrowserTabs([{ url, title }], url);
+        await rememberBrowserPage(url, title);
     } catch (error) {
         if (!/invalid session|no such window|tab crashed/i.test(error.message || "")) {
             console.error("Could not save open browser tabs:", error.message);
