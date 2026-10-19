@@ -37,6 +37,18 @@
         "panel": "dedicated",
         "close": false
       }
+    },
+    {
+      "label": "Solid Waddle: Back Up VM State",
+      "type": "shell",
+      "command": "bash",
+      "args": ["scripts/backup-state.sh"],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "close": false
+      }
     }
   ]
 }
