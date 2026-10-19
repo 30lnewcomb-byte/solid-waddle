@@ -23,7 +23,7 @@ trap 'rm -rf "$stage"' EXIT
 mkdir -p "$stage/state"
 data_dir="${SOLID_WADDLE_DATA_DIR:-$ROOT}"
 if [[ "$data_dir" != /* ]]; then data_dir="$ROOT/$data_dir"; fi
-for file in .sideview-browser-state.json .solid-waddle-tabs.json .solid-waddle-memory.json;
+for file in .sideview-browser-state.json .solid-waddle-tabs.json .solid-waddle-memory.json; do
   if [[ -f "$data_dir/$file" ]]; then
     cp -p "$data_dir/$file" "$stage/state/$file"
   fi
