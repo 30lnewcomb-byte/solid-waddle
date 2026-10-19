@@ -230,7 +230,7 @@ async function saveOpenBrowserTabs(sessionId = webdriverSessionId) {
                 try {
                     const url = parseBrowserTarget(target.url);
                     const tab = { url, title: typeof target.title === "string" ? target.title.slice(0, 500) : "" };
-                    if (!tabs.some((existing) => existing.url === tab.url)) tabs.push(tab);
+                    tabs.push(tab);
                     const targetHandle = `CDwindow-${target.targetId}`;
                     if (activeHandle === targetHandle || activeHandle === target.targetId) activeUrl = url;
                 } catch {
