@@ -25,6 +25,18 @@
         "panel": "dedicated",
         "close": false
       }
+    },
+    {
+      "label": "Solid Waddle: Update and Test",
+      "type": "shell",
+      "command": "bash",
+      "args": ["scripts/update-and-test.sh"],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "close": false
+      }
     }
   ]
 }
