@@ -6,6 +6,7 @@ Solid-waddle's current browser-based version already has persistence mechanisms.
 
 - **Chrome profile:** `compose.yaml` mounts the named Docker volume `chrome-config` at `/home/seluser/.config`. Normal container stop/recreation keeps this volume.
 - **Last browser page:** `server.mjs` saves the last safe browser URL and title in `.sideview-browser-state.json` in the project workspace and attempts to restore the URL when Chrome starts.
+- **All open tabs:** `server.mjs` checks the open Chrome tabs every five seconds and saves up to 50 restorable web tabs, their titles, and the active tab in `.solid-waddle-tabs.json`. When a fresh Selenium/Chrome session is created, it reopens the saved tabs and returns to the previously active tab. Browser-internal pages and blank tabs are not restorable, and a tab may lose unsent form text or other temporary page state.
 - **VM memory:** the memory API stores records in `.solid-waddle-memory.json` in the configured data directory. By default that is the project workspace; setting `SOLID_WADDLE_DATA_DIR` moves this memory file to a different persistent directory.
 - **Git safety:** browser state, memory, and backup archives are excluded from Git so personal data is not accidentally committed.
 
@@ -13,7 +14,7 @@ Solid-waddle's current browser-based version already has persistence mechanisms.
 
 In VS Code/Codespaces, open the Command Palette with **Ctrl+Shift+P**, choose **Tasks: Run Task**, then choose **Solid Waddle: Back Up VM State**.
 
-The script creates a timestamped archive under `.solid-waddle-backups/`. It includes the Chrome profile volume plus the saved browser page and memory JSON files when present. The backup task does not delete or reset your live profile.
+The script creates a timestamped archive under `.solid-waddle-backups/`. It includes the Chrome profile volume plus the saved browser page, open-tab session, and memory JSON files when present. The backup task does not delete or reset your live profile.
 
 **Important:** a backup kept only inside the Codespace can disappear if you delete that Codespace. Download/copy the archive somewhere outside the Codespace for protection against that. Chrome may be running while the profile is archived, so for the cleanest snapshot, avoid changing browser tabs while the backup runs.
 
