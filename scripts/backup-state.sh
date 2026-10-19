@@ -23,7 +23,7 @@ trap 'rm -rf "$stage"' EXIT
 mkdir -p "$stage/state"
 data_dir="${SOLID_WADDLE_DATA_DIR:-$ROOT}"
 if [[ "$data_dir" != /* ]]; then data_dir="$ROOT/$data_dir"; fi
-for file in .sideview-browser-state.json .solid-waddle-memory.json; do
+for file in .sideview-browser-state.json .solid-waddle-tabs.json .solid-waddle-memory.json;
   if [[ -f "$data_dir/$file" ]]; then
     cp -p "$data_dir/$file" "$stage/state/$file"
   fi
@@ -39,7 +39,7 @@ Created: $stamp
 Repository: 30lnewcomb-byte/solid-waddle
 Included:
 - Chrome profile Docker volume archive (chrome-config.tar.gz)
-- Saved browser page and VM memory JSON files from the configured data directory when present (state/)
+- Saved browser page, open-tab session, and VM memory JSON files from the configured data directory when present (state/)
 This is a recovery backup, not a bootable VM disk image.
 Keep a copy outside this Codespace if you need protection against deleting the Codespace.
 EOF
