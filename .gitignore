@@ -4,3 +4,5 @@ node_modules/
 .solid-waddle-memory.json
 .solid-waddle-memory.json.tmp
 .solid-waddle-backups/
+.solid-waddle-tabs.json
+.solid-waddle-tabs.json.tmp
