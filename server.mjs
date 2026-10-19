@@ -13,6 +13,7 @@ import httpProxy from "http-proxy";
 const root = path.dirname(fileURLToPath(import.meta.url));
 const dataDirectory = process.env.SOLID_WADDLE_DATA_DIR ? path.resolve(process.env.SOLID_WADDLE_DATA_DIR) : root;
 const browserStatePath = path.join(dataDirectory, ".sideview-browser-state.json");
+const browserTabsPath = path.join(dataDirectory, ".solid-waddle-tabs.json");
 const memoryStorePath = path.join(dataDirectory, ".solid-waddle-memory.json");
 const execFileAsync = promisify(execFile);
 const allowedDomains = ["openai.com", "chatgpt.com", "oaistatic.com", "oaiusercontent.com", "chatgptusercontent.com"];
@@ -153,6 +154,157 @@ async function loadSavedBrowserPage() {
 
 let savedBrowserPage = await loadSavedBrowserPage();
 let browserStateWrite = Promise.resolve();
+let browserTabsWrite = Promise.resolve();
+let savedActiveBrowserUrl = "";
+
+async function loadSavedBrowserTabs() {
+    try {
+        const parsed = JSON.parse(await readFile(browserTabsPath, "utf8"));
+        savedActiveBrowserUrl = typeof parsed.activeUrl === "string" ? parsed.activeUrl : "";
+        if (!Array.isArray(parsed.tabs)) return [];
+        return parsed.tabs
+            .filter((tab) => tab && typeof tab.url === "string")
+            .map((tab) => {
+                try {
+                    return { url: parseBrowserTarget(tab.url), title: typeof tab.title === "string" ? tab.title.slice(0, 500) : "" };
+                } catch {
+                    return null;
+                }
+            })
+            .filter(Boolean)
+            .slice(0, 50);
+    } catch (error) {
+        if (error.code !== "ENOENT") console.error("Could not load saved browser tabs:", error.message);
+        return [];
+    }
+}
+
+let savedBrowserTabs = await loadSavedBrowserTabs();
+
+async function persistBrowserTabs(tabs, activeUrl) {
+    const normalized = tabs.slice(0, 50);
+    const serialized = JSON.stringify({
+        version: 1,
+        savedAt: new Date().toISOString(),
+        activeUrl: typeof activeUrl === "string" ? activeUrl : "",
+        tabs: normalized,
+    }, null, 2);
+    browserTabsWrite = browserTabsWrite.catch(() => {}).then(async () => {
+        await mkdir(dataDirectory, { recursive: true });
+        const temporaryPath = browserTabsPath + ".tmp";
+        await writeFile(temporaryPath, serialized, { mode: 0o600 });
+        await rename(temporaryPath, browserTabsPath);
+        savedBrowserTabs = normalized;
+        savedActiveBrowserUrl = typeof activeUrl === "string" ? activeUrl : "";
+    });
+    await browserTabsWrite;
+}
+
+async function saveOpenBrowserTabs(sessionId = webdriverSessionId) {
+    if (!sessionId) return;
+    try {
+        const handlesResponse = await fetch(`${webdriverEndpoint}/session/${sessionId}/window/handles`, { signal: AbortSignal.timeout(5000) });
+        const handlesData = await handlesResponse.json();
+        const handles = handlesData.value;
+        if (!handlesResponse.ok || !Array.isArray(handles) || !handles.length) return;
+        const currentResponse = await fetch(`${webdriverEndpoint}/session/${sessionId}/window`, { signal: AbortSignal.timeout(5000) });
+        const currentData = await currentResponse.json();
+        const activeHandle = currentData.value;
+        const tabs = [];
+        let activeUrl = "";
+        for (const handle of handles.slice(0, 50)) {
+            const switched = await fetch(`${webdriverEndpoint}/session/${sessionId}/window`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ handle }),
+                signal: AbortSignal.timeout(5000),
+            });
+            if (!switched.ok) continue;
+            const [urlResponse, titleResponse] = await Promise.all([
+                fetch(`${webdriverEndpoint}/session/${sessionId}/url`, { signal: AbortSignal.timeout(5000) }),
+                fetch(`${webdriverEndpoint}/session/${sessionId}/title`, { signal: AbortSignal.timeout(5000) }),
+            ]);
+            const [urlData, titleData] = await Promise.all([urlResponse.json(), titleResponse.json()]);
+            if (!urlResponse.ok || typeof urlData.value !== "string" || isBlankBrowserPage(urlData.value)) continue;
+            try {
+                const url = parseBrowserTarget(urlData.value);
+                tabs.push({ url, title: typeof titleData.value === "string" ? titleData.value.slice(0, 500) : "" });
+                if (handle === activeHandle) activeUrl = url;
+            } catch {
+                // Ignore internal browser pages that cannot be restored as web URLs.
+            }
+        }
+        if (activeHandle && handles.includes(activeHandle)) {
+            await fetch(`${webdriverEndpoint}/session/${sessionId}/window`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ handle: activeHandle }),
+                signal: AbortSignal.timeout(5000),
+            }).catch(() => {});
+        }
+        // Save an empty list too, so closing every tab does not resurrect stale tabs.
+        await persistBrowserTabs(tabs, activeUrl);
+        if (activeUrl) await rememberBrowserPage(activeUrl, tabs.find((tab) => tab.url === activeUrl)?.title || "");
+    } catch (error) {
+        if (!/invalid session|no such window|tab crashed/i.test(error.message || "")) {
+            console.error("Could not save open browser tabs:", error.message);
+        }
+    }
+}
+
+async function restoreSavedBrowserTabs(sessionId) {
+    if (!savedBrowserTabs.length) return;
+    try {
+        const handlesResponse = await fetch(`${webdriverEndpoint}/session/${sessionId}/window/handles`, { signal: AbortSignal.timeout(5000) });
+        const handlesData = await handlesResponse.json();
+        const firstHandle = handlesData.value?.[0];
+        if (!handlesResponse.ok || !firstHandle) return;
+        let firstOpened = false;
+        const opened = [];
+        for (const tab of savedBrowserTabs.slice(0, 50)) {
+            let handle = firstHandle;
+            if (firstOpened) {
+                const newTabResponse = await fetch(`${webdriverEndpoint}/session/${sessionId}/window/new`, {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ type: "tab" }),
+                    signal: AbortSignal.timeout(10000),
+                });
+                const newTabData = await newTabResponse.json();
+                if (!newTabResponse.ok || !newTabData.value?.handle) continue;
+                handle = newTabData.value.handle;
+            }
+            const switched = await fetch(`${webdriverEndpoint}/session/${sessionId}/window`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ handle }),
+                signal: AbortSignal.timeout(5000),
+            });
+            if (!switched.ok) continue;
+            const navigated = await fetch(`${webdriverEndpoint}/session/${sessionId}/url`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ url: tab.url }),
+                signal: AbortSignal.timeout(15000),
+            });
+            if (navigated.ok) {
+                firstOpened = true;
+                opened.push({ handle, url: tab.url });
+            }
+        }
+        const preferred = opened.find((tab) => tab.url === savedActiveBrowserUrl) || opened[0];
+        if (preferred) {
+            await fetch(`${webdriverEndpoint}/session/${sessionId}/window`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ handle: preferred.handle }),
+                signal: AbortSignal.timeout(5000),
+            });
+        }
+    } catch (error) {
+        console.error("Could not restore all saved browser tabs:", error.message);
+    }
+}
 
 async function rememberBrowserPage(url, title) {
     let safeUrl;
@@ -285,6 +437,7 @@ async function ensureWebdriverSession() {
             const sessionId = data.value?.sessionId || data.sessionId;
             if (!response.ok || !sessionId) throw new Error(data.value?.message || "Could not start remote Chrome.");
             webdriverSessionId = sessionId;
+            await restoreSavedBrowserTabs(sessionId);
             return sessionId;
         })();
     }
@@ -787,6 +940,8 @@ server.on("connect", (request, socket, head) => {
 });
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+    const tabSaveTimer = setInterval(() => { void saveOpenBrowserTabs(); }, 5000);
+    tabSaveTimer.unref();
     const port = Number(process.env.PORT || 8000);
     const host = process.env.HOST || "0.0.0.0";
     server.listen(port, host, () => {
