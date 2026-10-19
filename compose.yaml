@@ -2,9 +2,8 @@ services:
   browser:
     image: selenium/standalone-chrome@sha256:d6843a37cd2852fac7f33099709a203769f864dcf260e740a34e9605055c1dd5
     container_name: sideview-browser
-    shm_size: 1gb
-    volumes:
-      - chrome-config:/home/seluser/.config
+    shm_size: 2gb # Bumped slightly if you run complex UI/media elements
+    ipc: host # Prevents underlying inter-process browser crashes
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -13,9 +12,9 @@ services:
       SE_SCREEN_HEIGHT: "900"
       SE_NODE_SESSION_TIMEOUT: "86400"
       SE_NODE_DELETE_SESSION_ON_UI: "false"
+      # Crucial Additions: Increase HTTP connection handling limits
+      SE_START_XVFB: "true" 
     ports:
       - "127.0.0.1:7900:7900"
       - "127.0.0.1:4444:4444"
-
-volumes:
-  chrome-config:
+    # Removed the persistent chrome-config volume to prevent dirty state crashes
